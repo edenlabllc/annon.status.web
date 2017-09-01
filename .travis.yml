@@ -5,8 +5,14 @@ cache:
   directories:
   - "~/.nvm"
   - node_modules
+notifications:
+  slack: 
+    rooms:
+      - secure: "WQ3Slror3sGHDiVazkXSuFpL3fK1Wr+Vfp+Dn2rIuRLG2DFCLHA1eN9V9XCdYxN1K+5Mx3brv/mh0q18xRAXvIsJ2BVRYLIv9oxUSl9J1+JrQTJ8lICHhVLTFNgqS5q96BF+KEMvd6CEiD5TyATHmtyhdJeBZs/9Rzvqub2xA/nBbLdefUgHtpBc2256enRgFSoWTS8a1F1pPSb9U+aNztFN1LvaSHZ3HPK8HPi3Eba3V1jm1z1yOdSkN9GPfXwriSwrrnh8hX3mnpdCjgSfC++ASjWJGdiLevwwHZqmwm1A4c1NV9vVRr9uCJ51TLnlriJZWKNJ5oIUuoVroo0CqkNRzojKrQYKJaaMCDstX5ELylpuds9sYxsl6MTttpGSYwW+l8Z8oLkFZ3CvNDCK7JwuBmYr65VpKlUdhs33X9iNZYEnwdR91t8DNm2CI/20qPkuXCp5Ex9qoN5xxBh+kQq62YfyCByecP3e9VxhoiH/Iavo50aEVngkuE+vox+lMDyoF0AercKd6nmDRmIH62mZjYZv1YTWruGRmzDF+icipjzeLBZ5kNC6gvsXVgnNNAm3Oxd2FiCOsFJHQtQlUmojZLYrTtzZcaXbb+9cJkMXmrLzGDuSsJwXJFGdNrP7IH9JkMiieGqyGHddwobvTbyQgtotZigQhGP8l4yGEaU="
+    on_success: always
 env:
   global:
+  - Chart=fe
   - RELEASE_BRANCH="master"
   - DOCKER_HUB_ACCOUNT="edenlabllc"
   - MAIN_BRANCHES="master develop"
@@ -15,14 +21,15 @@ env:
 node_js:
 - 7.5.0
 before_install:
+- openssl aes-256-cbc -K $encrypted_6baab8bb76b0_key -iv $encrypted_6baab8bb76b0_iv -in eHealth-eef414faa06b.json.enc -out eHealth-eef414faa06b.json -d
 - npm run docker:up
 - chmod -R +x bin
 script:
 - npm run test
-- npm run lint
-- "./bin/version-increment.sh"
-- "./bin/build.sh"
-- "./bin/start.sh"
+- npm run lint  || travis_terminate 1
+- "./bin/version-increment.sh  || travis_terminate 1"
+- "./bin/build.sh  || travis_terminate 1"
+- "./bin/start.sh  || travis_terminate 1"
 - sleep 5
 - docker ps
 - RUNNING_CONTAINERS=`docker ps | wc -l`; if [ "${RUNNING_CONTAINERS//[[:space:]]/}"
@@ -30,5 +37,5 @@ script:
   --details --since 5h; exit 1; fi;
 - npm run nightwatch -- -e travis
 - sleep 5
-after_success:
 - "./bin/ci/push.sh"
+- sudo ./bin/deploy.sh || travis_terminate 1
